@@ -1,0 +1,17 @@
+# Secrets
+.streamlit/secrets.toml
+*.json
+*.key
+*.pem
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Temporary files
+temp_*
