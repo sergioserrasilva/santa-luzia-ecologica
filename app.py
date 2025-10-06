@@ -637,30 +637,40 @@ with tab2:
 with tab3:
     st.markdown("## 🗺️ **MAPA DA AVENTURA**")
     
-    if ee_initialized and geometry and selected_years and remapped_image:
+    if ee_initialized and geometry and selected_years:
         try:
-            # Mapa básico e estável
+            # Criar mapa básico
             m = geemap.Map(center=[-4.5, -45], zoom=8)
             
-            # Adicionar camadas básicas
+            # Adicionar área de estudo
             study_area = ee.FeatureCollection([ee.Feature(geometry)])
             m.centerObject(study_area, zoom=10)
             m.addLayer(study_area, {'color': 'red', 'width': 3}, 'Santa Luzia')
             
-            selected_year = selected_years[0]
-            selected_band = f"classification_{selected_year}"
+            # Tentar carregar o MapBiomas
+            try:
+                mapbiomas_image = ee.Image('projects/mapbiomas-public/assets/brazil/lulc/collection9/mapbiomas_collection90_integration_v1')
+                
+                selected_year = selected_years[0]
+                selected_band = f"classification_{selected_year}"
+                
+                m.addLayer(
+                    mapbiomas_image.select(selected_band).clip(geometry),
+                    {
+                        'palette': CLASS_CONFIG['palette'],
+                        'min': 1,
+                        'max': 49
+                    },
+                    f"Mapa {selected_year}"
+                )
+                
+                st.success("✅ Dados MapBiomas carregados!")
+                
+            except Exception as ee_error:
+                st.warning("⚠️ Dados MapBiomas temporariamente indisponíveis")
+                st.info("📍 Mapa de referência carregado - Santa Luzia")
             
-            m.addLayer(
-                remapped_image.select(selected_band).clip(geometry),
-                {
-                    'palette': CLASS_CONFIG['palette'],
-                    'min': 1,
-                    'max': 6
-                },
-                f"Mapa {selected_year}"
-            )
-            
-            # Legenda simplificada
+            # Adicionar legenda
             m.add_legend(
                 title="Legenda",
                 legend_dict=CLASS_CONFIG['names'],
@@ -670,56 +680,47 @@ with tab3:
             # Exibir o mapa
             m.to_streamlit(height=500)
             
-            # Instruções simples para salvar
-            st.markdown("### 📸 **Como salvar o mapa:**")
-            st.info("""
-            **Para capturar:**
-            - 🖥️ **Computador:** Pressione `Print Screen`
-            - 📱 **Celular:** Capture a tela
-            - 💡 **Dica:** Ajuste o zoom antes!
-            """)
+            # Informações do mapa
+            st.markdown("### 📖 **INFORMAÇÕES DO MAPA**")
+            
+            info_col1, info_col2, info_col3 = st.columns(3)
+            
+            with info_col1:
+                st.markdown(
+                    f'<div class="metric-card" style="background: linear-gradient(135deg, #87CEEB, #4682B4);">'
+                    f'<div style="font-size: 2.5rem;">🗓️</div>'
+                    f'<div style="font-size: 1.1rem; font-weight: bold;">Ano</div>'
+                    f'<div style="font-size: 1.8rem; margin-top: 10px;">{selected_years[0]}</div>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+            
+            with info_col2:
+                st.markdown(
+                    f'<div class="metric-card" style="background: linear-gradient(135deg, #90EE90, #32CD32);">'
+                    f'<div style="font-size: 2.5rem;">🌍</div>'
+                    f'<div style="font-size: 1.1rem; font-weight: bold;">Área</div>'
+                    f'<div style="font-size: 1.8rem; margin-top: 10px;">Santa Luzia</div>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+            
+            with info_col3:
+                st.markdown(
+                    f'<div class="metric-card" style="background: linear-gradient(135deg, #FFB6C1, #FF69B4);">'
+                    f'<div style="font-size: 2.5rem;">📏</div>'
+                    f'<div style="font-size: 1.1rem; font-weight: bold;">Escala</div>'
+                    f'<div style="font-size: 1.8rem; margin-top: 10px;">30 metros</div>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
             
         except Exception as e:
             st.error("⚠️ Erro na visualização do mapa")
             st.info("💡 Os dados estão carregados - use as outras abas para análise")
     else:
-        st.error("❌ Recursos não disponíveis para carregar o mapa")
+        st.error("❌ Earth Engine não conectado ou dados não disponíveis")
 
-    # 🔧 CORREÇÃO: Esta parte deve estar FORA do bloco if/try
-    st.markdown("### 📖 **INFORMAÇÕES DO MAPA**")
-    
-    info_col1, info_col2, info_col3 = st.columns(3)
-    
-    with info_col1:
-        st.markdown(
-            f'<div class="metric-card" style="background: linear-gradient(135deg, #87CEEB, #4682B4);">'
-            f'<div style="font-size: 2.5rem;">🗓️</div>'
-            f'<div style="font-size: 1.1rem; font-weight: bold;">Ano</div>'
-            f'<div style="font-size: 1.8rem; margin-top: 10px;">{selected_years[0]}</div>'
-            f'</div>',
-            unsafe_allow_html=True
-        )
-    
-    with info_col2:
-        st.markdown(
-            f'<div class="metric-card" style="background: linear-gradient(135deg, #90EE90, #32CD32);">'
-            f'<div style="font-size: 2.5rem;">🌍</div>'
-            f'<div style="font-size: 1.1rem; font-weight: bold;">Área</div>'
-            f'<div style="font-size: 1.8rem; margin-top: 10px;">Santa Luzia</div>'
-            f'</div>',
-            unsafe_allow_html=True
-        )
-    
-    with info_col3:
-        st.markdown(
-            f'<div class="metric-card" style="background: linear-gradient(135deg, #FFB6C1, #FF69B4);">'
-            f'<div style="font-size: 2.5rem;">📏</div>'
-            f'<div style="font-size: 1.1rem; font-weight: bold;">Escala</div>'
-            f'<div style="font-size: 1.8rem; margin-top: 10px;">30 metros</div>'
-            f'</div>',
-            unsafe_allow_html=True
-        )
-        
 with tab4:
     st.markdown("## 📋 **NOSSO BAÚ DE DADOS**")
     
